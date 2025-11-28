@@ -60,57 +60,112 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Senha",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: loading ? null : realizarLogin,
-              child: Text(loading ? "Entrando..." : "Entrar"),
-            ),
-
-            if (error.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  error,
-                  style: const TextStyle(color: Colors.red),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: Center(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: 400,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
-              ),
-
-            const SizedBox(height: 15),
-            TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, "/cadastro");
-              },
-              child: const Text("Não tem cadastro? Clique aqui"),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                // ✅ SIGLA DO PROJETO
+                Text(
+                  "SGB",
+                  style: TextStyle(
+                    fontSize: 32,
+                    color: HSLColor.fromAHSL(1, 239, 0.84, 0.67).toColor(),
+                    fontWeight: FontWeight.bold
+                  ),
+                ),
+                const Text(
+                  "SISTEMA DE GERENCIAMENTO DE BIBLIOTECA",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color.fromRGBO(100, 116, 139, 1)
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: "Email",
+                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Color.fromRGBO(100, 116, 139, 1))
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                TextField(
+                  
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "Senha",
+                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Color.fromRGBO(100, 116, 139, 1))
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: HSLColor.fromAHSL(1, 239, 0.84, 0.67).toColor(),
+                    ), 
+                    onPressed: loading ? null : realizarLogin,
+                    child: 
+                    Text(
+                      loading ? "Entrando..." : "Entrar",
+                      style: const TextStyle(color: Colors.white), 
+                    ),
+                  ),
+                ),
+
+                if (error.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      error,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+
+                const SizedBox(height: 15),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, "/cadastro");
+                  },
+                  child: const Text("Não tem cadastro? Clique aqui"),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
