@@ -42,21 +42,26 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString("perfil", data["perfil"]);
         await prefs.setString("user", data["user"]);
         await prefs.setInt("userId", data["userId"]);
+        print(data["perfil"]);
+        print(data["token"]);
         Navigator.pushReplacementNamed(
           context,
-          '/usuarios',
+          '/livros',
           arguments: {
-            'token': data['token'],
-            'perfil': data['perfil'],
+            'token': data["token"],
+            'perfil': data["perfil"],
+            'isAdminOrBiblio':
+                data["perfil"] == 'ADMIN' || data["perfil"] == 'BIBLIOTECARIO',
+            'userId': data["userId"],
           },
         );
-
       } else {
         setState(() {
           error = "Login inválido.";
         });
       }
     } catch (e) {
+      print("Erro ao fazer login: $e");
       setState(() {
         error = "Erro ao conectar com o servidor.";
       });
@@ -67,112 +72,118 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: Center(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            width: 400,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-
-                // ✅ SIGLA DO PROJETO
-                Text(
-                  "SGB",
-                  style: TextStyle(
-                    fontSize: 32,
-                    color: HSLColor.fromAHSL(1, 239, 0.84, 0.67).toColor(),
-                    fontWeight: FontWeight.bold
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              width: 400,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
-                ),
-                const Text(
-                  "SISTEMA DE GERENCIAMENTO DE BIBLIOTECA",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color.fromRGBO(100, 116, 139, 1)
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: "Email",
-                    border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Color.fromRGBO(100, 116, 139, 1))
-                  ),
-                ),
-
-                const SizedBox(height: 15),
-
-                TextField(
-                  
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: "Senha",
-                    border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Color.fromRGBO(100, 116, 139, 1))
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: HSLColor.fromAHSL(1, 239, 0.84, 0.67).toColor(),
-                    ), 
-                    onPressed: loading ? null : realizarLogin,
-                    child: 
-                    Text(
-                      loading ? "Entrando..." : "Entrar",
-                      style: const TextStyle(color: Colors.white), 
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ✅ SIGLA DO PROJETO
+                  Text(
+                    "SGB",
+                    style: TextStyle(
+                      fontSize: 32,
+                      color: HSLColor.fromAHSL(1, 239, 0.84, 0.67).toColor(),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
+                  const Text(
+                    "SISTEMA DE GERENCIAMENTO DE BIBLIOTECA",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color.fromRGBO(100, 116, 139, 1),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-                if (error.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      error,
-                      style: const TextStyle(color: Colors.red),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: "Email",
+                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Color.fromRGBO(100, 116, 139, 1),
+                      ),
                     ),
                   ),
 
-                const SizedBox(height: 15),
+                  const SizedBox(height: 15),
 
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, "/cadastro");
-                  },
-                  child: const Text("Não tem cadastro? Clique aqui"),
-                ),
-              ],
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: "Senha",
+                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Color.fromRGBO(100, 116, 139, 1),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: HSLColor.fromAHSL(
+                          1,
+                          239,
+                          0.84,
+                          0.67,
+                        ).toColor(),
+                      ),
+                      onPressed: loading ? null : realizarLogin,
+                      child: Text(
+                        loading ? "Entrando..." : "Entrar",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+
+                  if (error.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        error,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+
+                  const SizedBox(height: 15),
+
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, "/cadastro");
+                    },
+                    child: const Text("Não tem cadastro? Clique aqui"),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

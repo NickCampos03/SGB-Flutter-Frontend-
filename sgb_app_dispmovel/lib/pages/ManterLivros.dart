@@ -2,12 +2,22 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import '../components/SideMenu.dart';
 
 class LivrosPage extends StatefulWidget {
+  final String token;
+  final String perfil;
   final bool isAdminOrBiblio;
+  
+  final int userId;
 
-  const LivrosPage({Key? key, required this.isAdminOrBiblio}) : super(key: key);
+  const LivrosPage({
+    super.key,
+    required this.token,
+    required this.perfil,
+    required this.isAdminOrBiblio,
+    required this.userId
+  });
 
   @override
   State<LivrosPage> createState() => _LivrosPageState();
@@ -17,6 +27,7 @@ class _LivrosPageState extends State<LivrosPage> {
   List livros = [];
   List livrosFiltrados = [];
   List generos = [];
+  List usuarios = [];
 
   bool loading = false;
   String error = '';
@@ -31,21 +42,35 @@ class _LivrosPageState extends State<LivrosPage> {
     super.initState();
     buscarGeneros();
     buscarLivros();
+    if (widget.isAdminOrBiblio) {
+      buscarUsuarios();
+    }
   }
 
-  // ====================== TOKEN ======================
-  Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
+  // ====================== USUARIOS ======================
+  Future<void> buscarUsuarios() async {
+    try {
+      final res = await http.get(
+        Uri.parse('http://localhost:8080/usuarios'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
+      );
+
+      if (res.statusCode == 200) {
+        setState(() {
+          usuarios = jsonDecode(res.body);
+        });
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   // ====================== GENEROS ======================
   Future<void> buscarGeneros() async {
     try {
-      final token = await getToken();
       final res = await http.get(
-        Uri.parse('http://SEU_IP:8080/generos'),
-        headers: {'Authorization': 'Bearer $token'},
+        Uri.parse('http://localhost:8080/generos'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
       if (res.statusCode == 200) {
@@ -66,8 +91,6 @@ class _LivrosPageState extends State<LivrosPage> {
     });
 
     try {
-      final token = await getToken();
-
       final query = {
         if (filtroGenero.isNotEmpty) 'generoId': filtroGenero,
         if (filtroDisponibilidade.isNotEmpty)
@@ -75,11 +98,11 @@ class _LivrosPageState extends State<LivrosPage> {
       };
 
       final uri =
-          Uri.http('SEU_IP:8080', '/livros', query);
+          Uri.http('localhost:8080', '/livros', query);
 
       final res = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
       if (res.statusCode == 200) {
@@ -122,13 +145,11 @@ class _LivrosPageState extends State<LivrosPage> {
 
   // ====================== CRIAR LIVRO ======================
   Future<void> criarLivro(String nome, String autor, String generoId) async {
-    final token = await getToken();
-
     final res = await http.post(
-      Uri.parse('http://SEU_IP:8080/livros'),
+      Uri.parse('http://localhost:8080/livros'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
+        'Authorization': 'Bearer ${widget.token}'
       },
       body: jsonEncode({
         'nome': nome,
@@ -145,15 +166,41 @@ class _LivrosPageState extends State<LivrosPage> {
 
   // ====================== DELETE ======================
   Future<void> excluirLivro(int id) async {
-    final token = await getToken();
-
     await http.delete(
-      Uri.parse('http://SEU_IP:8080/livros/$id'),
-      headers: {'Authorization': 'Bearer $token'},
+      Uri.parse('http://localhost:8080/livros/$id'),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
     );
 
     buscarLivros();
     Navigator.pop(context);
+  }
+
+  // ====================== EDITAR LIVRO ======================
+  Future<void> editarLivro(int id, String nome, String autor, String generoId) async {
+    final res = await http.put(
+      Uri.parse('http://localhost:8080/livros/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${widget.token}'
+      },
+      body: jsonEncode({
+        'nome': nome,
+        'autor': autor,
+        'genero': {'id': int.parse(generoId)}
+      }),
+    );
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      Navigator.of(context).pop();
+      buscarLivros();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Livro atualizado com sucesso')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao atualizar livro')),
+      );
+    }
   }
 
   // ====================== MODAL CRIAR ======================
@@ -216,6 +263,167 @@ class _LivrosPageState extends State<LivrosPage> {
     );
   }
 
+  // ====================== MODAL EDITAR ======================
+  void abrirModalEditar(Map livro) {
+    final nomeController = TextEditingController(text: livro['nome']);
+    final autorController = TextEditingController(text: livro['autor']);
+    String generoSelecionado = livro['genero']?['id']?.toString() ?? '';
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Editar Livro"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nomeController,
+              decoration: const InputDecoration(labelText: 'Nome'),
+            ),
+            TextField(
+              controller: autorController,
+              decoration: const InputDecoration(labelText: 'Autor'),
+            ),
+            DropdownButtonFormField(
+              value: generoSelecionado.isEmpty ? null : generoSelecionado,
+              items: generos
+                  .map<DropdownMenuItem<String>>(
+                    (g) => DropdownMenuItem(
+                      value: g['id'].toString(),
+                      child: Text(g['nome']),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                generoSelecionado = value.toString();
+              },
+              decoration: const InputDecoration(labelText: 'Gênero'),
+            )
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancelar"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: const Text("Salvar"),
+            onPressed: () {
+              editarLivro(
+                livro['codigoLivro'],
+                nomeController.text,
+                autorController.text,
+                generoSelecionado,
+              );
+            },
+          )
+        ],
+      ),
+    );
+  }
+
+  // ====================== CRIAR EMPRESTIMO ======================
+  Future<void> criarEmprestimo(int codigoLivro, int codigoUsuario) async {
+    final hoje = DateTime.now();
+    final dataRetirada = hoje.toIso8601String().substring(0, 10);
+    final dataPrevista = hoje.add(const Duration(days: 14)).toIso8601String().substring(0, 10);
+
+    final res = await http.post(
+      Uri.parse('http://localhost:8080/emprestimos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${widget.token}'
+      },
+      body: jsonEncode({
+        'usuario': {'codigoLogin': codigoUsuario},
+        'livro': {'codigoLivro': codigoLivro},
+        'dataRetirada': dataRetirada,
+        'dataPrevista': dataPrevista,
+      }),
+    );
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      Navigator.of(context).pop();
+      buscarLivros();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Empréstimo realizado com sucesso')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao realizar empréstimo: ${res.body}')),
+      );
+    }
+  }
+
+  // ====================== MODAL NOVO EMPRESTIMO ======================
+  void abrirModalNovoEmprestimo(Map livro) {
+    String usuarioSelecionado = widget.perfil == 'USUARIO' ? widget.userId.toString() : '';
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Novo Empréstimo"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Livro: ${livro['nome']} #${livro['codigoLivro']}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            if (widget.perfil == 'USUARIO')
+              const Text('Usuário: Você')
+            else 
+              DropdownButtonFormField<String>(
+                value: usuarioSelecionado.isEmpty ? null : usuarioSelecionado,
+                items: usuarios
+                    .map<DropdownMenuItem<String>>(
+                      (u) => DropdownMenuItem(
+                        value: u['codigoLogin'].toString(),
+                        child: Text('${u['nome']} #${u['codigoLogin']}'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  usuarioSelecionado = value ?? '';
+                },
+                decoration: const InputDecoration(labelText: 'Usuário'),
+              ),
+            const SizedBox(height: 8),
+            const Text(
+              'Data de retirada: Hoje\nData prevista: +14 dias',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancelar"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+            child: const Text("Emprestar"),
+            onPressed: () {
+              if (usuarioSelecionado.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Selecione um usuário')),
+                );
+                return;
+              }
+              criarEmprestimo(
+                livro['codigoLivro'],
+                int.parse(usuarioSelecionado),
+              );
+            },
+          )
+        ],
+      ),
+    );
+  }
+
   // ====================== CARD ======================
   Widget livroCard(livro) {
     final disponivel = livro['disponibilidade'] == 'DISPONIVEL';
@@ -238,29 +446,64 @@ class _LivrosPageState extends State<LivrosPage> {
             ),
           ],
         ),
-        onTap: widget.isAdminOrBiblio
-            ? () {
-                showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: const Text("Opções"),
-                    content: const Text(
-                        "Deseja excluir este livro?"),
-                    actions: [
-                      TextButton(
-                          onPressed: () =>
-                              Navigator.pop(context),
-                          child: const Text("Cancelar")),
-                      ElevatedButton(
-                          onPressed: () =>
-                              excluirLivro(
-                                  livro['codigoLivro']),
-                          child: const Text("Excluir")),
-                    ],
-                  ),
-                );
-              }
-            : null,
+        onTap: () {
+          final List<Widget> actions = [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+          ];
+
+          // Botão de Emprestar - apenas para admin/biblio e se livro disponível
+          if (disponivel) {
+            actions.add(
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  abrirModalNovoEmprestimo(livro);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                ),
+                child: const Text("Emprestar"),
+              ),
+            );
+          }
+
+          // Botões de Editar e Excluir - apenas para admin/biblio
+          if (widget.isAdminOrBiblio) {
+            actions.add(
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  abrirModalEditar(livro);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                ),
+                child: const Text("Editar"),
+              ),
+            );
+            actions.add(
+              ElevatedButton(
+                onPressed: () => excluirLivro(livro['codigoLivro']),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                child: const Text("Excluir"),
+              ),
+            );
+          }
+
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: Text("Opções - ${livro['nome']}"),
+              content: const Text("Escolha uma ação:"),
+              actions: actions,
+            ),
+          );
+        },
       ),
     );
   }
@@ -276,10 +519,65 @@ class _LivrosPageState extends State<LivrosPage> {
               child: const Icon(Icons.add),
             )
           : null,
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          children: [
+      body: Row(
+        children: [
+          // SideMenu
+          SideMenu(
+            perfil: widget.perfil,
+            selected: 'livros',
+            onSelect: (String route) async {
+              if (route == 'perfil') {
+                Navigator.pushNamed(
+                  context,
+                  '/perfil',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'userId': widget.userId,
+                  },
+                );
+              } else if (route == 'generos') {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/generos',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'isAdminOrBiblio': widget.isAdminOrBiblio,
+                    'userId': widget.userId,
+                  },
+                );
+              } else if (route == 'usuarios') {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/usuarios',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'userId': widget.userId,
+                  },
+                );
+              } else if (route == 'emprestimos') {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/emprestimos',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'isAdminOrBiblio': widget.isAdminOrBiblio,
+                    'userId': widget.userId,
+                  },
+                );
+              }
+            },
+          ),
+
+          // Conteúdo principal
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: [
             // ---------- FILTROS ----------
             TextField(
               decoration:
@@ -358,6 +656,9 @@ class _LivrosPageState extends State<LivrosPage> {
             ),
           ],
         ),
+            ),
+          ),
+        ],
       ),
     );
   }

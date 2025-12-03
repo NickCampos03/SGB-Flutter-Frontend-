@@ -1,12 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../components/SideMenu.dart';
 
 class UsuarioPage extends StatefulWidget {
   final String token;
   final String perfil;
+  final int userId;
 
-  const UsuarioPage({super.key, required this.token, required this.perfil});
+  const UsuarioPage({
+    super.key,
+    required this.token,
+    required this.perfil,
+    required this.userId,
+  });
 
   @override
   State<UsuarioPage> createState() => _UsuarioPageState();
@@ -57,10 +64,66 @@ class _UsuarioPageState extends State<UsuarioPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Usuários')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
+      body: Row(
+        children: [
+          // ✅ SideMenu
+          SideMenu(
+            perfil: widget.perfil,
+            selected: 'usuarios',
+            onSelect: (String route) async {
+              if (route == 'perfil') {
+                Navigator.pushNamed(
+                  context,
+                  '/perfil',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'userId': widget.userId,
+                  },
+                );
+              } else if (route == 'livros') {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/livros',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'isAdminOrBiblio': widget.perfil == 'ADMIN' || widget.perfil == 'BIBLIOTECARIO',
+                    'userId': widget.userId,
+                  },
+                );
+              } else if (route == 'generos') {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/generos',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'isAdminOrBiblio': widget.perfil == 'ADMIN' || widget.perfil == 'BIBLIOTECARIO',
+                    'userId': widget.userId,
+                  },
+                );
+              } else if (route == 'emprestimos') {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/emprestimos',
+                  arguments: {
+                    'token': widget.token,
+                    'perfil': widget.perfil,
+                    'isAdminOrBiblio': widget.perfil == 'ADMIN' || widget.perfil == 'BIBLIOTECARIO',
+                    'userId': widget.userId,
+                  },
+                );
+              }
+            },
+          ),
+          
+          // Conteúdo principal
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
             TextField(
               decoration: const InputDecoration(
                 labelText: 'Filtrar por nome',
@@ -91,6 +154,9 @@ class _UsuarioPageState extends State<UsuarioPage> {
             ),
           ],
         ),
+            ),
+          ),
+        ],
       ),
     );
   }
