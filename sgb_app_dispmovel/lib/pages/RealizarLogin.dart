@@ -42,8 +42,15 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString("perfil", data["perfil"]);
         await prefs.setString("user", data["user"]);
         await prefs.setInt("userId", data["userId"]);
+        Navigator.pushReplacementNamed(
+          context,
+          '/usuarios',
+          arguments: {
+            'token': data['token'],
+            'perfil': data['perfil'],
+          },
+        );
 
-        Navigator.pushReplacementNamed(context, "/home");
       } else {
         setState(() {
           error = "Login inválido.";

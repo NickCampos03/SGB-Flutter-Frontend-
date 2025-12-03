@@ -16,13 +16,35 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SGB',
       initialRoute: '/',
-      routes: {
-        '/': (context) => const LoginPage(),
-        '/cadastro': (context) => const CadastroPage(),
-        '/usuarios': (context) => const UsuarioPage(
-              token: 'SEU_TOKEN_JWT_AQUI',
+      
+      onGenerateRoute: (settings) {
+        // Login
+        if (settings.name == '/') {
+          return MaterialPageRoute(
+            builder: (context) => const LoginPage(),
+          );
+        }
+
+        // Cadastro
+        if (settings.name == '/cadastro') {
+          return MaterialPageRoute(
+            builder: (context) => const CadastroPage(),
+          );
+        }
+
+        // Usuários (agora recebe TOKEN REAL)
+        if (settings.name == '/usuarios') {
+          final token = settings.arguments as String;
+
+          return MaterialPageRoute(
+            builder: (context) => UsuarioPage(
+              token: token,
               perfil: 'ADMIN',
             ),
+          );
+        }
+
+        return null;
       },
     );
   }
